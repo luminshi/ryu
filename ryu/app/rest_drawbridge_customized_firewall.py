@@ -859,6 +859,7 @@ class Firewall(object):
             msg = []
             for vid, rule_ids in delete_ids.items():
                 del_msg = {'result': 'success',
+							'rule_ids': '%s' % rule_ids,
                            'details': 'Rule deleted. : ruleID=%s' % rule_ids}
                 if vid != VLANID_NONE:
                     del_msg.setdefault(REST_VLANID, vid)
