@@ -398,6 +398,7 @@ class FirewallController(ControllerBase):
         # do not disable the switch.
         #f_ofs.set_disable_flow()
         f_ofs.set_arp_flow()
+        f_ofs.set_icmp_flow()
         f_ofs.set_log_enable()
         FirewallController._LOGGER.info('dpid=%s: Join as firewall.',
                                         dpid_str)
@@ -717,6 +718,20 @@ class Firewall(object):
         msg = {'result': 'success',
                'details': details}
         return REST_COMMAND_RESULT, msg
+
+    def set_icmp_flow(self):
+        cookie = 0
+        priority = 0
+        match_before = {'dl_type':'IPv4',
+                        'nw_proto':'ICMP'}
+        match_after = Match.to_openflow(match_before)
+        action = {REST_ACTION: REST_ACTION_ALLOW}
+        actions = Action.to_openflow(self.dp, action)
+        flow = self._to_of_flow(cookie=cookie, priority=priority,
+                                match=match_after, actions=actions)
+        cmd = self.dp.ofproto.OFPFC_ADD
+        self.ofctl.mod_flow_entry(self.dp, flow, cmd)
+
 
     def set_arp_flow(self):
         cookie = 0
