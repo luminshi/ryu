@@ -395,7 +395,8 @@ class FirewallController(ControllerBase):
 
         FirewallController._OFS_LIST.setdefault(dp.id, f_ofs)
 
-        f_ofs.set_disable_flow()
+        # do not disable the switch.
+        #f_ofs.set_disable_flow()
         f_ofs.set_arp_flow()
         f_ofs.set_log_enable()
         FirewallController._LOGGER.info('dpid=%s: Join as firewall.',
