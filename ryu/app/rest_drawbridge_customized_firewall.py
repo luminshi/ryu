@@ -397,6 +397,9 @@ class FirewallController(ControllerBase):
 
         # do not disable the switch.
         #f_ofs.set_disable_flow()
+
+        # make a http POST request using webob lib.
+        # so the DrawBridge controller will be able to know what are the devices
         f_ofs.set_arp_flow()
         f_ofs.set_icmp_flow()
         f_ofs.set_log_enable()
@@ -407,6 +410,7 @@ class FirewallController(ControllerBase):
     def unregist_ofs(dp):
         if dp.id in FirewallController._OFS_LIST:
             del FirewallController._OFS_LIST[dp.id]
+            # again, make a POST request to the DrawBridge controller.
             FirewallController._LOGGER.info('dpid=%s: Leave firewall.',
                                             dpid_lib.dpid_to_str(dp.id))
 
