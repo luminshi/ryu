@@ -18,6 +18,7 @@ import logging
 import json
 
 from webob import Response
+from webob import Request
 
 from ryu.app.wsgi import ControllerBase
 from ryu.app.wsgi import WSGIApplication
@@ -400,11 +401,13 @@ class FirewallController(ControllerBase):
 
         # make a http POST request using webob lib.
         # so the DrawBridge controller will be able to know what are the devices
+        f_ofs.http_request_test(dpid_str)
         f_ofs.set_arp_flow()
         f_ofs.set_icmp_flow()
         f_ofs.set_log_enable()
         FirewallController._LOGGER.info('dpid=%s: Join as firewall.',
                                         dpid_str)
+
 
     @staticmethod
     def unregist_ofs(dp):
@@ -722,6 +725,14 @@ class Firewall(object):
         msg = {'result': 'success',
                'details': details}
         return REST_COMMAND_RESULT, msg
+
+	# define a quick and dirty webob http request function here
+    def http_request_test(self, deviceId):
+        req = Request.blank('http://httpbin.org/post')
+        req.method = 'POST'
+        req.headers['Content-Type'] = 'application/json'
+        req.body = '{"dpid":'+'"'+deviceId+'"}'
+        print(req.get_response())
 
     def set_icmp_flow(self):
         cookie = 0
