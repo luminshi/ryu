@@ -196,6 +196,14 @@ VLANID_MAX = 4094
 COOKIE_SHIFT_VLANID = 32
 
 
+# define a quick and dirty webob http request function here
+def http_request_test(deviceId, action):
+    req = Request.blank('http://192.168.0.101:8080/drawbridge/sdn/switch_'+action)
+    req.method = 'POST'
+    req.headers['Content-Type'] = 'application/json'
+    req.body = '{"sdnSwitchId":'+'"'+deviceId+'"}'
+    print(req.get_response())
+
 class RestFirewallAPI(app_manager.RyuApp):
 
     OFP_VERSIONS = [ofproto_v1_0.OFP_VERSION,
@@ -401,7 +409,7 @@ class FirewallController(ControllerBase):
 
         # make a http POST request using webob lib.
         # so the DrawBridge controller will be able to know what are the devices
-        f_ofs.http_request_test(dpid_str)
+        http_request_test(dpid_str, 'join')
         f_ofs.set_arp_flow()
         f_ofs.set_icmp_flow()
         f_ofs.set_log_enable()
@@ -409,10 +417,13 @@ class FirewallController(ControllerBase):
                                         dpid_str)
 
 
+
     @staticmethod
     def unregist_ofs(dp):
         if dp.id in FirewallController._OFS_LIST:
             del FirewallController._OFS_LIST[dp.id]
+            dpid_str = dpid_lib.dpid_to_str(dp.id)
+            http_request_test(dpid_str, 'leave')
             # again, make a POST request to the DrawBridge controller.
             FirewallController._LOGGER.info('dpid=%s: Leave firewall.',
                                             dpid_lib.dpid_to_str(dp.id))
@@ -726,13 +737,6 @@ class Firewall(object):
                'details': details}
         return REST_COMMAND_RESULT, msg
 
-	# define a quick and dirty webob http request function here
-    def http_request_test(self, deviceId):
-        req = Request.blank('http://httpbin.org/post')
-        req.method = 'POST'
-        req.headers['Content-Type'] = 'application/json'
-        req.body = '{"dpid":'+'"'+deviceId+'"}'
-        print(req.get_response())
 
     def set_icmp_flow(self):
         cookie = 0
@@ -797,7 +801,7 @@ class Firewall(object):
 
         rule_id = Firewall._cookie_to_ruleid(cookie)
         msg = {'result': 'success',
-				'rule_id': '%d' % rule_id}
+                'rule_id': '%d' % rule_id}
 
         if vlan_id != VLANID_NONE:
             msg.setdefault(REST_VLANID, vlan_id)
@@ -890,7 +894,7 @@ class Firewall(object):
             msg = []
             for vid, rule_ids in delete_ids.items():
                 del_msg = {'result': 'success',
-							'rule_ids': '%s' % rule_ids,
+                            'rule_ids': '%s' % rule_ids,
                            'details': 'Rule deleted. : ruleID=%s' % rule_ids}
                 if vid != VLANID_NONE:
                     del_msg.setdefault(REST_VLANID, vid)
