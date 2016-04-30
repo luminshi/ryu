@@ -195,10 +195,11 @@ VLANID_MIN = 2
 VLANID_MAX = 4094
 COOKIE_SHIFT_VLANID = 32
 
+DRAWBRIDGE_CONTROLLER_REST_ADDR = "http://192.168.1.101:8080/drawbridge" 
 
 # define a quick and dirty webob http request function here
 def http_request_test(deviceId, action):
-    req = Request.blank('http://192.168.0.101:8080/drawbridge/sdn/switch_'+action)
+    req = Request.blank(DRAWBRIDGE_CONTROLLER_REST_ADDR+'/sdn/switch_'+action)
     req.method = 'POST'
     req.headers['Content-Type'] = 'application/json'
     req.body = '{"sdnSwitchId":'+'"'+deviceId+'"}'
