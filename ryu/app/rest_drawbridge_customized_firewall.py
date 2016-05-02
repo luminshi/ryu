@@ -195,7 +195,7 @@ VLANID_MIN = 2
 VLANID_MAX = 4094
 COOKIE_SHIFT_VLANID = 32
 
-DRAWBRIDGE_CONTROLLER_REST_ADDR = "http://192.168.1.101:8080/drawbridge" 
+DRAWBRIDGE_CONTROLLER_REST_ADDR = "http://192.168.0.101:8080/drawbridge" 
 
 # define a quick and dirty webob http request function here
 def http_request_test(deviceId, action):
@@ -281,9 +281,10 @@ class RestFirewallAPI(app_manager.RyuApp):
                        conditions=dict(method=['POST']),
                        requirements=requirements)
 
-        mapper.connect('firewall', uri,
+        deleteuri = path + '/rules/delete/{switchid}'
+        mapper.connect('firewall', deleteuri,
                        controller=FirewallController, action='delete_rule',
-                       conditions=dict(method=['DELETE']),
+                       conditions=dict(method=['POST']),
                        requirements=requirements)
 
         # for VLAN data
