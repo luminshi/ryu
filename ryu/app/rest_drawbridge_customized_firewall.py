@@ -411,9 +411,13 @@ class FirewallController(ControllerBase):
 
         # make a http POST request using webob lib.
         # so the DrawBridge controller will be able to know what are the devices
-        http_request_test(dpid_str, 'join')
+        try:
+            http_request_test(dpid_str, 'join')
+        except:
+            print "DrawBridge controller is not enabled"
         f_ofs.set_arp_flow()
         f_ofs.set_icmp_flow()
+        f_ofs.set_allow_all_flow()
         f_ofs.set_log_enable()
         FirewallController._LOGGER.info('dpid=%s: Join as firewall.',
                                         dpid_str)
@@ -425,7 +429,11 @@ class FirewallController(ControllerBase):
         if dp.id in FirewallController._OFS_LIST:
             del FirewallController._OFS_LIST[dp.id]
             dpid_str = dpid_lib.dpid_to_str(dp.id)
-            http_request_test(dpid_str, 'leave')
+            try:
+                http_request_test(dpid_str, 'leave')
+            except:
+                print "DrawBridge controller is not enabled"
+            #http_request_test(dpid_str, 'leave')
             # again, make a POST request to the DrawBridge controller.
             FirewallController._LOGGER.info('dpid=%s: Leave firewall.',
                                             dpid_lib.dpid_to_str(dp.id))
@@ -739,6 +747,18 @@ class Firewall(object):
                'details': details}
         return REST_COMMAND_RESULT, msg
 
+
+    def set_allow_all_flow(self):
+        cookie = 0
+        priority = 1 
+        match_before = {'dl_type':'IPv4'}
+        match_after = Match.to_openflow(match_before)
+        action = {REST_ACTION: REST_ACTION_ALLOW}
+        actions = Action.to_openflow(self.dp, action)
+        flow = self._to_of_flow(cookie=cookie, priority=priority,
+                                match=match_after, actions=actions)
+        cmd = self.dp.ofproto.OFPFC_ADD
+        self.ofctl.mod_flow_entry(self.dp, flow, cmd)
 
     def set_icmp_flow(self):
         cookie = 0
