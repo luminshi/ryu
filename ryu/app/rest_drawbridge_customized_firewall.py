@@ -195,7 +195,7 @@ VLANID_MIN = 2
 VLANID_MAX = 4094
 COOKIE_SHIFT_VLANID = 32
 
-DRAWBRIDGE_CONTROLLER_REST_ADDR = "http://192.168.0.101:8080/drawbridge" 
+DRAWBRIDGE_CONTROLLER_REST_ADDR = "http://192.168.0.100:8081/drawbridge" 
 
 # define a quick and dirty webob http request function here
 def http_request_test(deviceId, action):
@@ -281,9 +281,16 @@ class RestFirewallAPI(app_manager.RyuApp):
                        conditions=dict(method=['POST']),
                        requirements=requirements)
 
+
         deleteuri = path + '/rules/delete/{switchid}'
         mapper.connect('firewall', deleteuri,
                        controller=FirewallController, action='delete_rule',
+                       conditions=dict(method=['POST']),
+                       requirements=requirements)
+
+        # for installing a batch of rules
+        mapper.connect('firewall', path + '/rules-batch/{switchid}',
+                       controller=FirewallController, action='set_rules',
                        conditions=dict(method=['POST']),
                        requirements=requirements)
 
@@ -493,6 +500,10 @@ class FirewallController(ControllerBase):
     def set_rule(self, req, switchid, **_kwargs):
         return self._set_rule(req, switchid)
 
+    # POST /firewall/rules-batch/{switchid}
+    def set_rules(self, req, switchid, **_kwargs):
+        return self._set_rules(req, switchid)
+
     # POST /firewall/rules/{switchid}/{vlanid}
     def set_vlan_rule(self, req, switchid, vlanid, **_kwargs):
         return self._set_rule(req, switchid, vlan_id=vlanid)
@@ -540,6 +551,34 @@ class FirewallController(ControllerBase):
                 msgs.append(msg)
             except ValueError as message:
                 return Response(status=400, body=str(message))
+
+        body = json.dumps(msgs)
+        return Response(content_type='application/json', body=body)
+
+
+    # extra support for loading a list of rules
+    def _set_rules(self, req, switchid, vlan_id=VLANID_NONE):
+        try:
+            rules = json.loads(req.body)
+        except SyntaxError:
+            FirewallController._LOGGER.debug('invalid syntax %s', req.body)
+            return Response(status=400)
+
+        try:
+            dps = self._OFS_LIST.get_ofs(switchid)
+            vid = FirewallController._conv_toint_vlanid(vlan_id)
+        except ValueError as message:
+            return Response(status=400, body=str(message))
+
+        msgs = []
+
+        for rule in rules:
+            for f_ofs in dps.values():
+                try:
+                    msg = f_ofs.set_rule(rule, self.waiters, vid)
+                    msgs.append(msg)
+                except ValueError as message:
+                    return Response(status=400, body=str(message))
 
         body = json.dumps(msgs)
         return Response(content_type='application/json', body=body)
